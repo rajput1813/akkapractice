@@ -1,6 +1,7 @@
 package part2actors
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import part2actors.ChangingActorBehavior.FussyKid
 import part2actors.ChangingActorBehavior.FussyKid.{KidAccept, KidReject}
 import part2actors.ChangingActorBehavior.Mom.{Ask, CHOCOLATE, Food, MomStart, VEGETABLE}
 
@@ -44,9 +45,29 @@ object ChangingActorBehavior extends App{
 
     }
   }
-
+  class StatelessFussyKid extends Actor{
+    import Mom._
+    import  FussyKid._
+    override def receive: Receive = happyReceive
+    def happyReceive :Receive =  {
+      case Food(VEGETABLE) => context.become(sadReceive) //change my receive handler to sadrReceive
+      case Food(CHOCOLATE)  =>
+      case Ask(_) =>sender() !KidAccept
+    }
+    def sadReceive :Receive ={
+      case Food(VEGETABLE) =>
+      case Food(CHOCOLATE) => context.become(happyReceive) // change my receive handler to happyReceive
+      case Ask(_) =>sender()! KidReject
+    }
+  }
   val system = ActorSystem("ChangingActorBehavior")
   val fussyKid = system.actorOf(Props[FussyKid])
   val mom  = system.actorOf(Props[Mom])
-  mom ! MomStart(fussyKid)
+  val statelessFussyKid =system.actorOf(Props[StatelessFussyKid])
+  mom ! MomStart(statelessFussyKid)
+  /*mom receive Momstart
+  kid receive food vege
+  kid receive ask play
+
+   */
 }
